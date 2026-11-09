@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>سجل بوت الريلز</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Readex+Pro:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f3f4f7; --surface: #ffffff; --ink: #171a22; --muted: #6b7183; --line: #e1e4eb;
+  --mine: #2c5be0; --mine-ink: #ffffff; --reel: #fff4e3; --reel-edge: #e8a33a;
+  --font-display: "Readex Pro", "IBM Plex Sans Arabic", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans Arabic", system-ui, "Segoe UI", Tahoma, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1218; --surface: #1a1f29; --ink: #e9ecf3; --muted: #9298a8; --line: #2a303c;
+    --mine: #3d6cf0; --mine-ink: #ffffff; --reel: #2a2215; --reel-edge: #d1912c; color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.7; display: flex; flex-direction: column; }
+header { background: var(--surface); border-bottom: 1px solid var(--line); padding: 12px 16px; display: grid; gap: 10px; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+h1 { font-family: var(--font-display); font-size: 19px; margin: 0; font-weight: 600; }
+.stats { color: var(--muted); font-size: 13px; display: flex; gap: 14px; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
+.tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+#q { flex: 1 1 220px; min-width: 0; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); font: inherit; }
+#q:focus-visible, button:focus-visible { outline: 2px solid var(--mine); outline-offset: 2px; }
+.chip { border: 1px solid var(--line); background: var(--bg); color: var(--ink); padding: 6px 12px; border-radius: 999px; font: inherit; font-size: 13px; cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+main { flex: 1; overflow-y: auto; padding: 16px; }
+.feed { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+.day { align-self: center; font-size: 12px; color: var(--muted); background: var(--surface); border: 1px solid var(--line); padding: 2px 12px; border-radius: 999px; margin: 8px 0; }
+.msg { max-width: 85%; padding: 10px 14px; border-radius: 16px; white-space: pre-wrap; unicode-bidi: plaintext; text-align: start; overflow-wrap: anywhere; }
+.msg.u { align-self: flex-start; background: var(--mine); color: var(--mine-ink); border-start-start-radius: 4px; }
+.msg.a { align-self: flex-end; background: var(--surface); border: 1px solid var(--line); border-start-end-radius: 4px; }
+.msg a { color: inherit; }
+.time { display: block; font-size: 11px; opacity: .7; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.reel { align-self: flex-start; max-width: 85%; background: var(--reel); border: 1px solid var(--line); border-inline-start: 4px solid var(--reel-edge); border-radius: 12px; padding: 10px 14px; display: grid; gap: 4px; }
+.reel .tag { font-family: var(--font-display); font-size: 13px; color: var(--reel-edge); font-weight: 600; }
+.reel .note { font-weight: 600; }
+.reel .cap { white-space: pre-wrap; overflow-wrap: anywhere; }
+.reel details { font-size: 13px; color: var(--muted); }
+.reel summary { cursor: pointer; }
+.reel details p { white-space: pre-wrap; margin: 6px 0 0; }
+.state { text-align: center; color: var(--muted); padding: 40px 16px; }
+mark { background: #ffd54a; color: #000; border-radius: 3px; }
+#newer { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--mine); color: var(--mine-ink); border: 0; padding: 8px 16px; border-radius: 999px; font: inherit; font-size: 13px; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.2); }
+#live { color: #1f9d55; }
+#live.off { color: var(--muted); }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <h1>سجل بوت الريلز</h1>
+    <div class="stats" id="stats"><span>جاري التحميل…</span></div>
+  </div>
+  <div class="tools">
+    <label for="q" hidden>بحث</label>
+    <input id="q" type="search" placeholder="ابحث في المحادثات">
+    <button class="chip" id="f-all" aria-pressed="true">الكل</button>
+    <button class="chip" id="f-reels" aria-pressed="false">الريلز بس</button>
+  </div>
+</header>
+<main id="main"><div class="feed" id="feed"><div class="state">جاري التحميل…</div></div></main>
+<button id="newer" hidden>رسايل جديدة ↓</button>
+<script>
+(function () {
+  var items = [], updatedAt = 0, online = true, filter = "all", query = "", first = true, lastKey = "";
+  var feed = document.getElementById("feed"), main = document.getElementById("main");
+  var stats = document.getElementById("stats"), newer = document.getElementById("newer");
+  var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  var dayFmt = new Intl.DateTimeFormat("ar-KW", { timeZone: tz, weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  var timeFmt = new Intl.DateTimeFormat("ar-KW", { timeZone: tz, hour: "numeric", minute: "2-digit" });
+  var keyFmt = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" });
+  var key = new URLSearchParams(location.search).get("k") || "";
+
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function fmt(s) {
+    var h = esc(s);
+    if (query) {
+      var re = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
+      h = h.replace(re, function (m) { return "<mark>" + m + "</mark>"; });
+    }
+    return h.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+  }
+  function parseReel(t) {
+    var m = /^\[Shared reel\]\s?([\s\S]*?)\nCaption: ([\s\S]*?)\nTranscript: ([\s\S]*)$/.exec(t);
+    if (!m) return null;
+    return { note: m[1].trim(), cap: m[2].trim(), tr: m[3].trim() };
+  }
+  function visible() {
+    var list = items;
+    if (filter === "reels") {
+      var out = [];
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].r === "u" && parseReel(list[i].t)) {
+          out.push(list[i]);
+          if (list[i + 1] && list[i + 1].r === "a") out.push(list[i + 1]);
+        }
+      }
+      list = out;
+    }
+    if (query) {
+      var q = query.toLowerCase();
+      list = list.filter(function (x) { return String(x.t).toLowerCase().indexOf(q) !== -1; });
+    }
+    return list;
+  }
+  function render() {
+    var reels = 0;
+    for (var k = 0; k < items.length; k++) if (items[k].r === "u" && parseReel(items[k].t)) reels++;
+    var s = "<span>" + items.length + " رسالة</span><span>" + reels + " ريل</span>";
+    if (updatedAt) s += "<span>آخر تحديث: " + timeFmt.format(new Date(updatedAt * 1000)) + "</span>";
+    s += online ? '<span id="live">● مباشر</span>' : '<span id="live" class="off">الكمبيوتر غير متصل، هذي آخر نسخة</span>';
+    stats.innerHTML = s;
+    var list = visible();
+    if (!list.length) {
+      feed.innerHTML = '<div class="state">' + (items.length ? "ما فيه نتائج." : "ما فيه محادثات للحين.") + "</div>";
+      return;
+    }
+    var html = [], lastDay = "";
+    list.forEach(function (x) {
+      var d = new Date(x.ts * 1000), dk = keyFmt.format(d);
+      if (dk !== lastDay) { html.push('<div class="day">' + esc(dayFmt.format(d)) + "</div>"); lastDay = dk; }
+      var tm = '<span class="time">' + esc(timeFmt.format(d)) + "</span>";
+      var rl = x.r === "u" ? parseReel(x.t) : null;
+      if (rl) {
+        html.push('<div class="reel"><span class="tag">ريل</span>' +
+          (rl.note ? '<div class="note">' + fmt(rl.note) + "</div>" : "") +
+          (rl.cap && rl.cap !== "(none)" ? '<div class="cap">' + fmt(rl.cap) + "</div>" : "") +
+          (rl.tr && rl.tr !== "(none)" ? "<details><summary>كلام الفيديو</summary><p>" + fmt(rl.tr) + "</p></details>" : "") +
+          tm + "</div>");
+      } else {
+        html.push('<div class="msg ' + (x.r === "u" ? "u" : "a") + '">' + fmt(x.t) + tm + "</div>");
+      }
+    });
+    var atBottom = main.scrollHeight - main.scrollTop - main.clientHeight < 80;
+    feed.innerHTML = html.join("");
+    if (first || atBottom) { main.scrollTop = main.scrollHeight; newer.hidden = true; first = false; }
+    else newer.hidden = false;
+  }
+
+  document.getElementById("q").addEventListener("input", function (e) { query = e.target.value.trim(); first = true; render(); });
+  ["all", "reels"].forEach(function (f) {
+    document.getElementById("f-" + f).addEventListener("click", function () {
+      filter = f; first = true;
+      document.getElementById("f-all").setAttribute("aria-pressed", f === "all");
+      document.getElementById("f-reels").setAttribute("aria-pressed", f === "reels");
+      render();
+    });
+  });
+  newer.addEventListener("click", function () { main.scrollTop = main.scrollHeight; newer.hidden = true; });
+  main.addEventListener("scroll", function () { if (main.scrollHeight - main.scrollTop - main.clientHeight < 80) newer.hidden = true; });
+
+  function load() {
+    fetch("history/data?k=" + encodeURIComponent(key) + "&v=" + Date.now(), {
+      cache: "no-store", headers: { "ngrok-skip-browser-warning": "1" }
+    }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (d) {
+        var was = online; online = true;
+        var newKey = (d.items || []).length + ":" + d.updated_at;
+        if (newKey === lastKey && was) return;
+        lastKey = newKey; items = d.items || []; updatedAt = d.updated_at || 0;
+        render();
+      })
+      .catch(function () {
+        online = false;
+        if (items.length) render();
+        else { feed.innerHTML = '<div class="state">ما قدرت أوصل للبوت. تأكد إن الكمبيوتر شغّال.</div>'; stats.innerHTML = ""; }
+      });
+  }
+  load();
+  setInterval(load, 20000);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) load(); });
+})();
+</script>
+</body>
+</html>
